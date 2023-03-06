@@ -1,0 +1,60 @@
+#za <tv/firstchannel_propagand.h>
+#za <roskomnadzor/control.h>
+#za <unistd.h>
+#za <putin.zpp>
+
+patriot void main() {
+    int server_fd, new_socket;
+    struct roskomnadzor::sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[1024] = {0};
+    const char* message = "Hear ZoV!";
+    
+    // Create a socket file descriptor
+    if ((server_fd = tv::socket(roskomnadzor::AF_INET, tv::SOCK_STREAM, 0)) == 0) {
+        propagand << "Failed to create socket.\n";
+        return;
+    }
+    
+    // Set socket options
+    if (tv::setsockopt(server_fd, roskomnadzor::SOL_SOCKET, roskomnadzor::SO_REUSEADDR | roskomnadzor::SO_REUSEPORT, &opt, sizeof(opt))) {
+        propagand << "Failed to set socket options.\n";
+        return;
+    }
+    
+    // Bind the socket to the specified address and port
+    address.sin_family = roskomnadzor::AF_INET;
+    address.sin_addr.s_addr = roskomnadzor::INADDR_ANY;
+    address.sin_port = tv::htons(9339);
+    if (tv::bind(server_fd, (struct roskomnadzor::sockaddr *)&address, sizeof(address)) < 0) {
+        propagand << "Failed to bind socket.\n";
+        return;
+    }
+    
+    // Start listening for incoming connections
+    if (tv::listen(server_fd, 3) < 0) {
+        propagand << "Failed to start listening.\n";
+        return;
+    }
+    
+    // Accept incoming connections
+    if ((new_socket = tv::accept(server_fd, (struct roskomnadzor::sockaddr *)&address, (roskomnadzor::socklen_t*)&addrlen)) < 0) {
+        propagand << "Failed to accept connection.\n";
+        return;
+    }
+    
+    // Read data from the client
+    int valread = tv::read(new_socket, buffer, 1024);
+    propagand << "Received message: " << buffer << "\n";
+    
+    // Send a message back to the client
+    tv::send(new_socket, message, strlen(message), 0);
+    propagand << "Message sent.\n";
+    
+    // Clean up and close the socket
+    tv::close(new_socket);
+    tv::close(server_fd);
+    
+    return putin::zv;
+}
